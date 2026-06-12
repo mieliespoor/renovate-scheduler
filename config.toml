@@ -1,0 +1,46 @@
+# Configuration for renovate-scheduler
+
+[renovate]
+  image = "renovate/renovate:latest"
+  container_name = "renovate"
+  env_file = "renovate-task.env"
+
+  # Optional: mount data into the Renovate container.
+  # Supported sources: host_path, config_map, secret, persistent_volume_claim.
+  # You can define multiple mounts with [[renovate.volume_mounts]].
+  [[renovate.volume_mounts]]
+    name = "renovate-config"
+    source = "host_path"
+    host_path = "/tmp/.renovate"
+    mount_path = "/tmp/renovate-config"
+    read_only = true
+
+  [[renovate.volume_mounts]]
+    name = "renovate-extra-config"
+    source = "config_map"
+    config_map_name = "renovate-config"
+    mount_path = "/tmp/renovate-config"
+    read_only = true
+
+[kubernetes]
+  namespace = "renovate-scheduler"
+  service_account_name = "renovate-scheduler"
+  secret_name = "renovate-scheduler-secret"
+  kubeconfig = ""
+
+# For Minikube/debug runs, set kubeconfig to your local kubeconfig path if you
+# want to bypass the default KUBECONFIG/default-location lookup.
+# On Windows this is often: C:\Users\<you>\.kube\config
+
+[scheduler]
+  max_concurrent_tasks = 6
+  job_timeout_seconds = 3600
+  job_ttl_seconds = 3600
+  run_interval_minutes = 60
+  repos_poll_seconds = 10
+  dispatch_poll_seconds = 10
+  state_file_path = "scheduler-state.json"
+
+[logging]
+  # Supported values: text, json
+  format = "text"

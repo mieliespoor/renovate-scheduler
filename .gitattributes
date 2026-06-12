@@ -1,0 +1,15 @@
+# Normalise line endings:
+* text=auto eol=lf
+
+# Be explicit for the file types in this repo
+*.go text eol=lf
+*.mod text eol=lf
+*.sum text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.dockerignore text eol=lf

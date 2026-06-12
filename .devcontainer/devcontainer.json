@@ -1,0 +1,45 @@
+{
+  "name": "renovate-scheduler",
+  // Go toolchain matching go.mod (go 1.26). Includes git, common Go tooling.
+  "image": "mcr.microsoft.com/vscode/devcontainers/go:1.26-trixie",
+  "features": {
+    // Install kubectl + helm + minikube in the devcontainer.
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "minikube": "latest"
+    }
+  },
+
+  // Reuse host kube credentials and minikube profiles from inside the container.
+  // Also expose the host Docker socket so minikube can use the docker driver.
+  "mounts": [
+    "source=${localEnv:USERPROFILE}/.kube,target=/home/vscode/.kube,type=bind,consistency=cached",
+    "source=${localEnv:USERPROFILE}/.minikube,target=/home/vscode/.minikube,type=bind,consistency=cached",
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+
+  "remoteEnv": {
+    "KUBECONFIG": "/home/vscode/.kube/config"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "tamasfe.even-better-toml",
+        "ms-kubeternetes-tools.vscode-kubernetes-tools"
+      ],
+      "settings": {
+        "go.useLanguageServer": true,
+        "[go]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "golang.go"
+        }
+      }
+    }
+  },
+
+  // Resolve modules (writes go.sum) once the container is created.
+  "postCreateCommand": "go mod tidy",
+
+  "remoteUser": "vscode"
+}

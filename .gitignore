@@ -1,0 +1,54 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.out
+
+# Dependency directories (remove the comment below if you use vendoring)
+# vendor/
+
+# Go workspace file
+go.work
+
+# Environment variables files
+.env
+.env.*
+
+# Build directories
+bin/
+dist/
+build/
+renovate-scheduler
+
+# Logs
+*.log
+
+# IDE/editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+*.tmp
+
+# Security scanning
+trivy-results.sarif
+
+# Release artifacts
+*.tar.gz
+*.zip
+release_notes.md
+
