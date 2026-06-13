@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -121,6 +122,7 @@ func dispatchLoop(ctx context.Context, client kubeClient, cfg *Config, store Rep
 	defer ticker.Stop()
 
 	sem := make(chan struct{}, cfg.Scheduler.MaxConcurrentTasks)
+	var wg sync.WaitGroup
 
 	for {
 		available := cap(sem) - len(sem)
@@ -131,7 +133,9 @@ func dispatchLoop(ctx context.Context, client kubeClient, cfg *Config, store Rep
 			} else {
 				for _, repo := range dueRepos {
 					sem <- struct{}{}
+					wg.Add(1)
 					go func(repo string) {
+						defer wg.Done()
 						defer func() { <-sem }()
 
 						start := time.Now()
@@ -165,6 +169,7 @@ func dispatchLoop(ctx context.Context, client kubeClient, cfg *Config, store Rep
 
 		select {
 		case <-ctx.Done():
+			wg.Wait()
 			return nil
 		case <-ticker.C:
 		}
