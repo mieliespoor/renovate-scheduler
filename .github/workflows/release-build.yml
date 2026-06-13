@@ -24,8 +24,6 @@ jobs:
             arch: amd64
           - os: darwin
             arch: arm64
-          - os: windows
-            arch: amd64
     steps:
       - uses: actions/checkout@v6
 
@@ -48,14 +46,6 @@ jobs:
           cd build
           tar -czf renovate-scheduler-${{ matrix.os }}-${{ matrix.arch }}.tar.gz \
             renovate-scheduler
-          cd ..
-
-      - name: Create zip
-        if: matrix.os == 'windows'
-        run: |
-          cd build
-          Compress-Archive -Path renovate-scheduler.exe `
-            -DestinationPath renovate-scheduler-${{ matrix.os }}-${{ matrix.arch }}.zip
           cd ..
 
       - name: Upload artifact
