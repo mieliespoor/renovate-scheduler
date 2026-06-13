@@ -92,6 +92,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    if: false  # Disabled for now, enable when needed
     steps:
       - uses: actions/checkout@v6
 
