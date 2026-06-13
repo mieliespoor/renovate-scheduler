@@ -51,8 +51,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-${{ matrix.os }}-${{ matrix.arch }}
           path: build/renovate-scheduler-*
+          if-no-files-found: error
 
   build-docker:
     name: Build Docker Image
@@ -99,6 +100,10 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8
+        with:
+          pattern: binaries-*
+          merge-multiple: true
+          path: dist
 
       - name: Extract version from tag
         id: version
@@ -121,7 +126,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.version }}
           body_path: release_notes.md
-          files: binaries/**/*
+          files: dist/*
           draft: false
           prerelease: false
         env:
