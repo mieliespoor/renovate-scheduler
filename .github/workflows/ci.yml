@@ -6,6 +6,11 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
 jobs:
   lint:
     name: Lint
