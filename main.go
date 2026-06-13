@@ -123,6 +123,7 @@ func dispatchLoop(ctx context.Context, client kubeClient, cfg *Config, store Rep
 
 	sem := make(chan struct{}, cfg.Scheduler.MaxConcurrentTasks)
 	var wg sync.WaitGroup
+	defer wg.Wait()
 
 	for {
 		available := cap(sem) - len(sem)
@@ -169,7 +170,6 @@ func dispatchLoop(ctx context.Context, client kubeClient, cfg *Config, store Rep
 
 		select {
 		case <-ctx.Done():
-			wg.Wait()
 			return nil
 		case <-ticker.C:
 		}
