@@ -119,17 +119,25 @@ func TestIngestLoopDetectsFileChanges(t *testing.T) {
 	store := &fakeRepoStore{}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	writeErrCh := make(chan error, 1)
 	go func() {
 		time.Sleep(500 * time.Millisecond)
 		// Modify repos file
 		if err := os.WriteFile(reposPath, []byte(`["org/repo-a", "org/repo-b", "org/repo-c"]`), 0o644); err != nil {
-			t.Fatalf("update repos: %v", err)
+			writeErrCh <- err
+			cancel()
+			return
 		}
+		writeErrCh <- nil
 		time.Sleep(1500 * time.Millisecond)
 		cancel()
 	}()
 
 	_ = ingestLoop(ctx, reposPath, cfg, store)
+
+	if writeErr := <-writeErrCh; writeErr != nil {
+		t.Fatalf("update repos: %v", writeErr)
+	}
 
 	syncCalls := store.getSyncCalls()
 	if len(syncCalls) < 2 {
