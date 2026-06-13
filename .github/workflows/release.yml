@@ -17,7 +17,7 @@ jobs:
         with:
           release-type: go
           default-branch: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           changelog-types: '[
               {"type": "feat", "section": "Features", "hidden": false},
               {"type": "fix", "section": "Bug Fixes", "hidden": false},
