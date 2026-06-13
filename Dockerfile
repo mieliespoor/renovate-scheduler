@@ -16,7 +16,6 @@ FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /app
 COPY --from=build /out/renovate-scheduler /usr/local/bin/renovate-scheduler
-COPY config.toml renovate-repos.json ./
 
 USER nonroot:nonroot
 
