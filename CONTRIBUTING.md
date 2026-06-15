@@ -82,6 +82,7 @@ test(dispatch): add integration tests for concurrent job handling
    ```bash
    go test -race -cover ./...
    golangci-lint run ./...
+   go mod tidy && git diff --exit-code go.mod go.sum
    go build -o renovate-scheduler .
    docker build -t renovate-scheduler:dev .
    ```
