@@ -78,15 +78,29 @@ test(dispatch): add integration tests for concurrent job handling
 
 3. Push your branch and create a Pull Request
 
-4. Ensure all CI checks pass:
+4. Run local pre-PR checks:
+   ```bash
+   go test -race -cover ./...
+   golangci-lint run ./...
+   go build -o renovate-scheduler .
+   docker build -t renovate-scheduler:dev .
+   ```
+
+   Confirm before requesting review:
+   - `go.mod` and `go.sum` are up to date
+   - New behavior includes tests
+   - Docs are updated when behavior or configuration changed
+   - Commit messages follow Conventional Commits
+
+5. Ensure all CI checks pass:
    - ✅ Lint (golangci-lint)
    - ✅ Tests (go test -race)
    - ✅ Build (docker build)
    - ✅ Security scan (Trivy)
 
-5. Request review from maintainers
+6. Request review from maintainers
 
-6. Once approved, your PR will be merged
+7. Once approved, your PR will be merged
 
 ## Release Process
 
@@ -130,6 +144,8 @@ Triggered on Git tags:
 - Go dependencies: Updated weekly
 - GitHub Actions: Updated weekly
 - Docker base image: Updated weekly
+
+For deeper CI/CD details and release architecture, see `CI-CD-GUIDE.md` and `WORKFLOW-ARCHITECTURE.md`.
 
 ## Testing Guidelines
 
