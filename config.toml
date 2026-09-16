@@ -10,16 +10,10 @@
   # You can define multiple mounts with [[renovate.volume_mounts]].
   [[renovate.volume_mounts]]
     name = "renovate-config"
-    source = "host_path"
-    host_path = "/tmp/.renovate"
-    mount_path = "/tmp/renovate-config"
-    read_only = true
-
-  [[renovate.volume_mounts]]
-    name = "renovate-extra-config"
     source = "config_map"
     config_map_name = "renovate-config"
-    mount_path = "/tmp/renovate-config"
+    mount_path = "/usr/src/app/config.json"
+    sub_path = "config.json"
     read_only = true
 
 [kubernetes]
@@ -39,8 +33,8 @@
   run_interval_minutes = 60
   repos_poll_seconds = 10
   dispatch_poll_seconds = 10
-  state_file_path = "scheduler-state.json"
+  state_file_path = "/var/lib/renovate-scheduler/scheduler-state.json"
 
 [logging]
   # Supported values: text, json
-  format = "text"
+  format = "json"

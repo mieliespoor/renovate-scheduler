@@ -1,0 +1,7 @@
+Renovate Jobs spawned by the scheduler get their RENOVATE_TOKEN from Secret:
+  {{ include "renovate-scheduler.secretName" . }}{{ if include "renovate-scheduler.createSecret" . }} (created by this release){{ else }} (pre-existing; not managed by this release){{ end }}
+{{- if include "renovate-scheduler.createSecret" . }}
+
+That Secret was populated from .Values.scheduler.secretData. If you meant to use a Secret that
+already exists in {{ .Release.Namespace }}, set scheduler.existingSecret to its name and upgrade.
+{{- end }}

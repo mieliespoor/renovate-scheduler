@@ -57,6 +57,10 @@ func run(configPath, reposPath string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	if err := preflight(ctx, client, cfg); err != nil {
+		return err
+	}
+
 	appLogger.Info("starting scheduler",
 		"max_concurrent_tasks", cfg.Scheduler.MaxConcurrentTasks,
 		"run_interval", time.Duration(cfg.Scheduler.RunIntervalMinutes)*time.Minute,

@@ -170,3 +170,33 @@ func TestBuildJobIncludesTimeoutTTLAndEnv(t *testing.T) {
 		t.Fatalf("expected one configured volume")
 	}
 }
+
+func TestPreflightRefs(t *testing.T) {
+	cfg := &Config{
+		Kubernetes: KubernetesConfig{Namespace: "renovate-scheduler", SecretName: "renovate-scheduler-secret"},
+		Renovate: RenovateConfig{VolumeMounts: []RenovateVolumeMountConfig{
+			{Source: "config_map", ConfigMapName: "renovate-config"},
+			{Source: "host_path", HostPath: "/mnt/data"},
+			{Source: "secret", SecretName: "extra-creds"},
+			{Source: "pvc", PersistentVolumeClaim: "renovate-cache"},
+		}},
+	}
+
+	want := []objectRef{
+		{Kind: "secret", Name: "renovate-scheduler-secret", Field: "kubernetes.secret_name"},
+		{Kind: "configmap", Name: "renovate-config", Field: "renovate.volume_mounts[0]"},
+		{Kind: "secret", Name: "extra-creds", Field: "renovate.volume_mounts[2]"},
+		{Kind: "persistentvolumeclaim", Name: "renovate-cache", Field: "renovate.volume_mounts[3]"},
+	}
+	if got := preflightRefs(cfg); !reflect.DeepEqual(got, want) {
+		t.Fatalf("preflightRefs=%#v, want %#v", got, want)
+	}
+}
+
+func TestPreflightRefsNoVolumeMounts(t *testing.T) {
+	cfg := &Config{Kubernetes: KubernetesConfig{Namespace: "renovate-scheduler", SecretName: "renovate-scheduler-secret"}}
+	want := []objectRef{{Kind: "secret", Name: "renovate-scheduler-secret", Field: "kubernetes.secret_name"}}
+	if got := preflightRefs(cfg); !reflect.DeepEqual(got, want) {
+		t.Fatalf("preflightRefs=%#v, want %#v", got, want)
+	}
+}

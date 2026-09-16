@@ -1,0 +1,57 @@
+{{- if not .Values.scheduler.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "renovate-scheduler.configMapName" . }}
+  labels:
+    {{- include "renovate-scheduler.labels" . | nindent 4 }}
+data:
+  config.toml: |
+    [renovate]
+      image = {{ .Values.scheduler.config.renovate.image | quote }}
+      container_name = {{ .Values.scheduler.config.renovate.containerName | quote }}
+      env_file = {{ .Values.scheduler.config.renovate.envFile | quote }}
+    {{- range .Values.scheduler.config.renovate.volumeMounts }}
+
+    [[renovate.volume_mounts]]
+      name = {{ .name | quote }}
+      source = {{ .source | quote }}
+      config_map_name = {{ .configMapName | quote }}
+      mount_path = {{ .mountPath | quote }}
+      sub_path = {{ .subPath | quote }}
+      read_only = {{ .readOnly }}
+    {{- end }}
+
+    [kubernetes]
+      namespace = {{ default .Release.Namespace .Values.scheduler.config.kubernetes.namespace | quote }}
+      service_account_name = {{ include "renovate-scheduler.jobServiceAccountName" . | quote }}
+      secret_name = {{ include "renovate-scheduler.secretName" . | quote }}
+
+    [scheduler]
+      max_concurrent_tasks = {{ .Values.scheduler.config.scheduler.maxConcurrentTasks }}
+      job_timeout_seconds = {{ .Values.scheduler.config.scheduler.jobTimeoutSeconds }}
+      job_ttl_seconds = {{ .Values.scheduler.config.scheduler.jobTTLSeconds }}
+      run_interval_minutes = {{ .Values.scheduler.config.scheduler.runIntervalMinutes }}
+      repos_poll_seconds = {{ .Values.scheduler.config.scheduler.reposPollSeconds }}
+      dispatch_poll_seconds = {{ .Values.scheduler.config.scheduler.dispatchPollSeconds }}
+      state_file_path = {{ .Values.scheduler.config.scheduler.stateFilePath | quote }}
+
+    [logging]
+      format = {{ .Values.scheduler.config.logging.format | quote }}
+  renovate-task.env: |
+    {{- range $key, $value := .Values.scheduler.taskEnv }}
+    {{ $key }}={{ $value }}
+    {{- end }}
+{{- end }}
+{{- if not .Values.scheduler.existingReposConfigMap }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "renovate-scheduler.reposConfigMapName" . }}
+  labels:
+    {{- include "renovate-scheduler.labels" . | nindent 4 }}
+data:
+  renovate-repos.json: |
+    {{- toJson .Values.scheduler.repos | nindent 4 }}
+{{- end }}

@@ -107,6 +107,75 @@ func waitForJob(ctx context.Context, client kubernetes.Interface, namespace, nam
 	})
 }
 
+// objectRef is a Kubernetes object the scheduler will name when it builds a
+// Renovate Job. Field records which config option asked for it, so a failure
+// tells the user what to fix rather than just the missing object.
+type objectRef struct {
+	Kind  string
+	Name  string
+	Field string
+}
+
+// preflightRefs lists every Kubernetes object that buildJob will reference.
+// Keeping it separate from the API calls makes the list easy to test without a cluster.
+func preflightRefs(cfg *Config) []objectRef {
+	refs := []objectRef{
+		{Kind: "secret", Name: cfg.Kubernetes.SecretName, Field: "kubernetes.secret_name"},
+	}
+
+	for index, mount := range cfg.Renovate.VolumeMounts {
+		field := fmt.Sprintf("renovate.volume_mounts[%d]", index)
+		source, err := mount.normalizedSource()
+		if err != nil {
+			continue
+		}
+
+		switch source {
+		case "config_map":
+			refs = append(refs, objectRef{Kind: "configmap", Name: mount.ConfigMapName, Field: field})
+		case "secret":
+			refs = append(refs, objectRef{Kind: "secret", Name: mount.SecretName, Field: field})
+		case "persistent_volume_claim", "pvc":
+			refs = append(refs, objectRef{Kind: "persistentvolumeclaim", Name: mount.PersistentVolumeClaim, Field: field})
+		}
+	}
+
+	return refs
+}
+
+// preflight checks that all files and Kubernetes objects required by a Renovate
+// Job exist before the first repository is dispatched.
+func preflight(ctx context.Context, client kubernetes.Interface, cfg *Config) error {
+	var problems []string
+
+	if cfg.Renovate.EnvFile != "" {
+		if _, err := os.Stat(cfg.Renovate.EnvFile); err != nil {
+			problems = append(problems, fmt.Sprintf("renovate.env_file: %v", err))
+		}
+	}
+
+	core := client.CoreV1()
+	for _, ref := range preflightRefs(cfg) {
+		var err error
+		switch ref.Kind {
+		case "configmap":
+			_, err = core.ConfigMaps(cfg.Kubernetes.Namespace).Get(ctx, ref.Name, metav1.GetOptions{})
+		case "secret":
+			_, err = core.Secrets(cfg.Kubernetes.Namespace).Get(ctx, ref.Name, metav1.GetOptions{})
+		case "persistentvolumeclaim":
+			_, err = core.PersistentVolumeClaims(cfg.Kubernetes.Namespace).Get(ctx, ref.Name, metav1.GetOptions{})
+		}
+		if err != nil {
+			problems = append(problems, fmt.Sprintf("%s: %v", ref.Field, err))
+		}
+	}
+
+	if len(problems) == 0 {
+		return nil
+	}
+	return fmt.Errorf("preflight failed in namespace %q:\n - %s", cfg.Kubernetes.Namespace, strings.Join(problems, "\n - "))
+}
+
 // loadEnvFile parses a .env file (KEY=VALUE lines, blank lines and # comments
 // are ignored) into a slice of corev1.EnvVar. Returns an empty slice when path
 // is empty.

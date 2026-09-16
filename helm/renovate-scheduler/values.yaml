@@ -1,0 +1,50 @@
+image:
+  repository: renovatescheduler
+  tag: dev
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: false
+
+scheduler:
+  existingConfigMap: ""
+  existingReposConfigMap: ""
+  existingSecret: renovate-scheduler-secret
+  secretData: {}
+  repos: []
+  taskEnv:
+    RENOVATE_CONFIG_FILE: /usr/src/app/config.json
+    RENOVATE_AUTODISCOVER: "false"
+    RENOVATE_GIT_AUTHOR: Renovate Scheduler <renovate-scheduler@users.noreply.github.com>
+    RENOVATE_MINIMUM_RELEASE_AGE: 7 days
+    LOG_FORMAT: json
+    LOG_LEVEL: debug
+  config:
+    renovate:
+      image: renovate/renovate:latest
+      containerName: renovate
+      envFile: /etc/renovate-scheduler/renovate-task.env
+      volumeMounts:
+        - name: renovate-config
+          source: config_map
+          configMapName: renovate-config
+          mountPath: /usr/src/app/config.json
+          subPath: config.json
+          readOnly: true
+    kubernetes:
+      namespace: ""
+      serviceAccountName: ""
+    scheduler:
+      maxConcurrentTasks: 6
+      jobTimeoutSeconds: 3600
+      jobTTLSeconds: 3600
+      runIntervalMinutes: 60
+      reposPollSeconds: 10
+      dispatchPollSeconds: 10
+      stateFilePath: /var/lib/renovate-scheduler/scheduler-state.json
+    logging:
+      format: json
