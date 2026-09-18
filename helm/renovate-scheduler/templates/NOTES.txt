@@ -5,3 +5,18 @@ Renovate Jobs spawned by the scheduler get their RENOVATE_TOKEN from Secret:
 That Secret was populated from .Values.scheduler.secretData. If you meant to use a Secret that
 already exists in {{ .Release.Namespace }}, set scheduler.existingSecret to its name and upgrade.
 {{- end }}
+
+{{- if .Values.persistence.enabled }}
+
+Scheduler state (last-run timestamps) is stored on PersistentVolumeClaim
+  {{ include "renovate-scheduler.pvcName" . }}{{ if not .Values.persistence.existingClaim }} (created by this release){{ else }} (pre-existing; not managed by this release){{ end }}
+and survives pod restarts.
+{{- else }}
+
+WARNING: persistence.enabled is false, so scheduler state (last-run timestamps) lives on an
+emptyDir and is LOST whenever the pod is replaced (Helm upgrade, node eviction, manual delete).
+After a restart the scheduler treats every repository as due and dispatches them all again.
+Set persistence.enabled=true (with persistence.existingClaim or dynamic provisioning) to persist
+state across restarts.
+{{- end }}
+

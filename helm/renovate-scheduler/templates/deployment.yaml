@@ -56,4 +56,9 @@ spec:
               - key: renovate-repos.json
                 path: renovate-repos.json
         - name: state
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "renovate-scheduler.pvcName" . }}
+          {{- else }}
           emptyDir: {}
+          {{- end }}

@@ -10,6 +10,24 @@ serviceAccount:
 rbac:
   create: false
 
+# Storage for scheduler state (last-run timestamps per repository, at
+# scheduler.config.scheduler.stateFilePath). This is the chart's persistence contract:
+#   - enabled: false (default) -> state lives on an emptyDir. It does NOT survive pod
+#     replacement (Helm upgrade, node eviction/drain, manual delete). On restart, the
+#     scheduler has no run history and treats every repository as due immediately.
+#     Only use this for throwaway/dev installs where re-dispatching everything is fine.
+#   - enabled: true -> state lives on a PersistentVolumeClaim and survives pod restarts.
+#     Set existingClaim to reuse a claim you manage yourself, or leave it empty to let
+#     the chart create a claim sized by `size`/`storageClassName`.
+persistence:
+  enabled: false
+  existingClaim: ""
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  annotations: {}
+
 scheduler:
   existingConfigMap: ""
   existingReposConfigMap: ""

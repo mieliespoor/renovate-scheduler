@@ -33,6 +33,35 @@ helm install renovate-scheduler \
   --create-namespace
 ```
 
+### Scheduler state persistence
+
+The scheduler tracks per-repository last-run timestamps in a state file (`scheduler.config.scheduler.stateFilePath`). The Helm chart's `persistence` values control where that file lives:
+
+| Value | Description | Default |
+|-------|-------------|---------|
+| `persistence.enabled` | Store state on a PersistentVolumeClaim instead of an emptyDir | `false` |
+| `persistence.existingClaim` | Reuse a pre-existing PVC name instead of letting the chart create one | `""` |
+| `persistence.storageClassName` | StorageClass for the chart-created PVC | `""` (cluster default) |
+| `persistence.accessModes` | Access modes for the chart-created PVC | `["ReadWriteOnce"]` |
+| `persistence.size` | Requested size for the chart-created PVC | `1Gi` |
+
+**Default behavior (`persistence.enabled: false`)**: state lives on an `emptyDir` and is lost whenever the pod is
+replaced (Helm upgrade, node eviction, manual delete). After a restart, the scheduler has no run history and
+dispatches every repository again. This is fine for throwaway/dev installs, but set `persistence.enabled: true`
+for any install where you don't want a restart to re-trigger every repository.
+
+```bash
+# create a claim managed by the chart
+helm upgrade --install renovate-scheduler helm/renovate-scheduler \
+  --set persistence.enabled=true \
+  --set persistence.size=1Gi
+
+# or reuse a claim you already manage
+helm upgrade --install renovate-scheduler helm/renovate-scheduler \
+  --set persistence.enabled=true \
+  --set persistence.existingClaim=renovate-scheduler-state
+```
+
 ## Local Setup with Minikube
 
 ### 1. Install Minikube

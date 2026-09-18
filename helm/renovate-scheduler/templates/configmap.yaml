@@ -16,7 +16,15 @@ data:
     [[renovate.volume_mounts]]
       name = {{ .name | quote }}
       source = {{ .source | quote }}
+      {{- if eq .source "host_path" }}
+      host_path = {{ .hostPath | quote }}
+      {{- else if eq .source "config_map" }}
       config_map_name = {{ .configMapName | quote }}
+      {{- else if eq .source "secret" }}
+      secret_name = {{ .secretName | quote }}
+      {{- else if or (eq .source "persistent_volume_claim") (eq .source "pvc") }}
+      persistent_volume_claim = {{ .persistentVolumeClaim | quote }}
+      {{- end }}
       mount_path = {{ .mountPath | quote }}
       sub_path = {{ .subPath | quote }}
       read_only = {{ .readOnly }}

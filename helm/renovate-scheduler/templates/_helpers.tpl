@@ -45,6 +45,10 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
 {{- default (printf "%s-repos" (include "renovate-scheduler.fullname" .)) .Values.scheduler.existingReposConfigMap -}}
 {{- end -}}
 
+{{- define "renovate-scheduler.pvcName" -}}
+{{- default (printf "%s-state" (include "renovate-scheduler.fullname" .)) .Values.persistence.existingClaim -}}
+{{- end -}}
+
 {{- define "renovate-scheduler.validateValues" -}}
 {{- if .Values.scheduler.config.kubernetes.secretName -}}
 {{- fail "scheduler.config.kubernetes.secretName is no longer supported; use scheduler.existingSecret." -}}
