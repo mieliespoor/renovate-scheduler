@@ -82,6 +82,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
             ghcr.io/${{ github.repository }}:latest
@@ -89,10 +91,45 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  publish-helm-chart:
+    name: Publish Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: azure/setup-helm@v4
+
+      - name: Package chart for release
+        id: chart
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag must contain a valid SemVer chart version: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          sed -i "s/^version: .*/version: $VERSION/" helm/renovate-scheduler/Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$GITHUB_REF_NAME\"/" helm/renovate-scheduler/Chart.yaml
+          sed -i "s|^  repository: .*|  repository: ghcr.io/${GITHUB_REPOSITORY}|" helm/renovate-scheduler/values.yaml
+          sed -i "s/^  tag: .*/  tag: $GITHUB_REF_NAME/" helm/renovate-scheduler/values.yaml
+          helm lint helm/renovate-scheduler
+          helm package helm/renovate-scheduler --destination dist
+          echo "package=dist/renovate-scheduler-$VERSION.tgz" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish chart as OCI artifact
+        run: helm push "${{ steps.chart.outputs.package }}" "oci://ghcr.io/${{ github.repository_owner }}/charts"
+
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-binary, build-docker]
+    needs: [build-binary, build-docker, publish-helm-chart]
     steps:
       - uses: actions/checkout@v6
         with:

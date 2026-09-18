@@ -1,5 +1,5 @@
 image:
-  repository: renovatescheduler
+  repository: ghcr.io/mieliespoor/renovate-scheduler
   tag: dev
   pullPolicy: IfNotPresent
 

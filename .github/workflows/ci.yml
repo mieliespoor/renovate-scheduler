@@ -72,6 +72,23 @@ jobs:
       - name: Verify binary
         run: ./renovate-scheduler --version 2>&1 || echo "Binary built successfully"
 
+  helm:
+    name: Validate Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: azure/setup-helm@v4
+
+      - name: Lint chart
+        run: helm lint helm/renovate-scheduler
+
+      - name: Render chart
+        run: helm template renovate-scheduler helm/renovate-scheduler > /dev/null
+
+      - name: Package chart
+        run: helm package helm/renovate-scheduler --destination dist
+
   docker:
     name: Build Docker Image
     runs-on: ubuntu-latest

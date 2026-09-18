@@ -20,6 +20,19 @@ A Kubernetes-based scheduler that orchestrates Renovate jobs across multiple rep
 - **Minikube** (for local Kubernetes testing)
 - **kubectl** (for interacting with Kubernetes)
 
+## Install with Helm
+
+The chart is published as an OCI artifact to GitHub Container Registry. Replace
+`<version>` with a published chart version (without the `v` prefix).
+
+```bash
+helm install renovate-scheduler \
+  oci://ghcr.io/mieliespoor/charts/renovate-scheduler \
+  --version <version> \
+  --namespace renovate-scheduler \
+  --create-namespace
+```
+
 ## Local Setup with Minikube
 
 ### 1. Install Minikube
