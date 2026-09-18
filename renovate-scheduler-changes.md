@@ -3,8 +3,7 @@
 > **Purpose:** a complete, self-contained spec for reproducing every change made to the
 > `renovate-scheduler` project for deployment. Hand this to a coding agent
 > together with a ticket.
-> **Ticket:** deployment. **Companion doc:** **[DEPLOYMENT.md](DEPLOYMENT.md)** (deployment order and
-> remaining blockers).
+> **Ticket:** deployment.
 > **Written:** 2026-09-15.
 
 ## 0. Baseline and scope
@@ -33,7 +32,7 @@ Two repos are involved. This document covers only the first:
 | Repo | Role |
 | --- | --- |
 | `github.com/mieliesp/renovate-scheduler` | Go service, Dockerfile, `helm/renovate-scheduler` chart. |
-| Internal deployment repository | Renovate CronJob values, Argo CD apps, token-secret CI. Changes there are covered in [DEPLOYMENT.md](DEPLOYMENT.md). |
+| Internal deployment repository | Renovate CronJob values, Argo CD apps, token-secret CI. Changes there are tracked separately from this document. |
 
 ### Design context an agent needs
 
@@ -104,7 +103,7 @@ values. Two layers of change relative to upstream.
   config_map_name = "renovate-config"
   mount_path = "/usr/src/app/config.json"
   sub_path = "config.json"
-  readOnly = true
+  read_only = true
 ```
 
 **Why:** `config_map_name = "renovate-config"` and a `config.ts` filename were both wrong — neither
@@ -294,7 +293,7 @@ func TestPreflightRefsNoVolumeMounts(t *testing.T) {
 **This chart does not exist upstream.** If working from a fresh upstream clone it must be created
 in full; the files below are the complete, current content of everything that changed.
 
-`Chart.yaml` - bump `version: 0.1.0` to `0.4.0` (`appVersion` is still `"dev"`; the pre-flight
+`Chart.yaml` - version stays `0.1.0` (`appVersion` is still `"dev"`; the pre-flight
 in section 1.3 needs a real image before it takes effect).
 
 ### 2.1 Four problems the chart changes fix
@@ -617,8 +616,7 @@ image is built. Treat §1.3-1.5 as reviewed-but-unbuilt code.
 
 `helm/` is absent from upstream `main` and from every other branch. There is no commit, no tag and
 no backup -- if the working copy is lost, the whole chart is lost. **Commit it before doing anything
-else.** This also blocks [DEPLOYMENT.md](DEPLOYMENT.md) Blocker I: the chart has to be published
-somewhere Argo CD can see before it can be deployed at all.
+else.** The chart also has to be published somewhere Argo CD can see before it can be deployed at all.
 
 ### 4.3 Internal detail in a public repo
 
@@ -630,7 +628,7 @@ name.
 Keep deployment-specific values in a separate values file and keep the public chart defaults generic.
 **This document is stored with the repository** and does not embed environment-specific proxy or CA configuration.
 
-### 4.4 Still open (details in [DEPLOYMENT.md](DEPLOYMENT.md))
+### 4.4 Still open
 
 | Blocker | Summary |
 | --- | --- |

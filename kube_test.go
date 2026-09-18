@@ -145,6 +145,10 @@ func TestBuildJobIncludesTimeoutTTLAndEnv(t *testing.T) {
 	if job.Namespace != "ns" {
 		t.Fatalf("namespace=%q, want ns", job.Namespace)
 	}
+	podSpec := job.Spec.Template.Spec
+	if podSpec.AutomountServiceAccountToken == nil || *podSpec.AutomountServiceAccountToken {
+		t.Fatalf("AutomountServiceAccountToken=%v, want pointer to false", podSpec.AutomountServiceAccountToken)
+	}
 	if job.Spec.ActiveDeadlineSeconds == nil || *job.Spec.ActiveDeadlineSeconds != 120 {
 		t.Fatalf("unexpected ActiveDeadlineSeconds: %v", job.Spec.ActiveDeadlineSeconds)
 	}
@@ -258,5 +262,26 @@ func TestPreflightReportsAllMissingDependencies(t *testing.T) {
 		if !strings.Contains(err.Error(), field) {
 			t.Errorf("preflight() error = %q, want field %q", err, field)
 		}
+	}
+}
+
+func TestPreflightRejectsDirectoryEnvFile(t *testing.T) {
+	cfg := &Config{
+		Kubernetes: KubernetesConfig{Namespace: "renovate-scheduler", SecretName: "renovate-scheduler-secret"},
+		Renovate: RenovateConfig{
+			EnvFile: t.TempDir(),
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "renovate-scheduler-secret", Namespace: "renovate-scheduler"}},
+	)
+
+	err := preflight(t.Context(), client, cfg)
+	if err == nil {
+		t.Fatal("preflight() error = nil, want error for directory env_file")
+	}
+	if !strings.Contains(err.Error(), "renovate.env_file:") {
+		t.Errorf("preflight() error = %q, want field %q", err, "renovate.env_file:")
 	}
 }

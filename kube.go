@@ -149,7 +149,7 @@ func preflight(ctx context.Context, client kubernetes.Interface, cfg *Config) er
 	var problems []string
 
 	if cfg.Renovate.EnvFile != "" {
-		if _, err := os.Stat(cfg.Renovate.EnvFile); err != nil {
+		if err := checkReadableFile(cfg.Renovate.EnvFile); err != nil {
 			problems = append(problems, fmt.Sprintf("renovate.env_file: %v", err))
 		}
 	}
@@ -174,6 +174,26 @@ func preflight(ctx context.Context, client kubernetes.Interface, cfg *Config) er
 		return nil
 	}
 	return fmt.Errorf("preflight failed in namespace %q:\n - %s", cfg.Kubernetes.Namespace, strings.Join(problems, "\n - "))
+}
+
+// checkReadableFile verifies that path is a regular, readable file. Unlike a
+// bare os.Stat, this catches directories and permission problems that would
+// otherwise only surface later when loadEnvFile is called during dispatch.
+func checkReadableFile(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", path)
+	}
+	return nil
 }
 
 // loadEnvFile parses a .env file (KEY=VALUE lines, blank lines and # comments
@@ -224,9 +244,10 @@ func buildJob(cfg *Config, repo string, envVars []corev1.EnvVar) (*batchv1.Job, 
 			BackoffLimit: new(int32(0)),
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
-					RestartPolicy:      corev1.RestartPolicyNever,
-					ServiceAccountName: cfg.Kubernetes.ServiceAccountName,
-					Volumes:            podVolumes,
+					RestartPolicy:                corev1.RestartPolicyNever,
+					ServiceAccountName:           cfg.Kubernetes.ServiceAccountName,
+					AutomountServiceAccountToken: new(false),
+					Volumes:                      podVolumes,
 					Containers: []corev1.Container{
 						{
 							Name:         containerName,

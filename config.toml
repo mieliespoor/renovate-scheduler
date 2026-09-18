@@ -33,7 +33,7 @@
   run_interval_minutes = 60
   repos_poll_seconds = 10
   dispatch_poll_seconds = 10
-  state_file_path = "/var/lib/renovate-scheduler/scheduler-state.json"
+  state_file_path = "./scheduler-state.json"
 
 [logging]
   # Supported values: text, json
