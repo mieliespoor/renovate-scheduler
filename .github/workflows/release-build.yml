@@ -152,11 +152,19 @@ jobs:
         id: release_notes
         run: |
           VERSION=${{ steps.version.outputs.version }}
+          # Changelog headings are written with or without the tag's "v" prefix
+          # (e.g. "## [1.2.0]" vs "## [v1.2.0]"), so strip it and match either form.
+          VERSION_NUM="${VERSION#v}"
 
           # Extract changelog section for this version
-          awk -v version="$VERSION" '$0 ~ "^## \\[" version "\\]" { in_section=1 } /^## / && in_section && $0 !~ "^## \\[" version "\\]" { exit } in_section { print }' CHANGELOG.md > release_notes.md
+          awk -v version="$VERSION_NUM" '$0 ~ "^## \\[v?" version "\\]" { in_section=1 } /^## / && in_section && $0 !~ "^## \\[v?" version "\\]" { exit } in_section { print }' CHANGELOG.md > release_notes.md
 
           cat release_notes.md
+
+          if [ ! -s release_notes.md ]; then
+            echo "::error::No changelog section found for version $VERSION (looked for '## [$VERSION_NUM]' or '## [v$VERSION_NUM]' in CHANGELOG.md)"
+            exit 1
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
