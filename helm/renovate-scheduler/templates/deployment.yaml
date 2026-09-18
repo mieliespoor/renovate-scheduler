@@ -17,6 +17,8 @@ spec:
         app.kubernetes.io/name: {{ include "renovate-scheduler.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      securityContext:
+        fsGroup: 65532
       serviceAccountName: {{ include "renovate-scheduler.serviceAccountName" . }}
       containers:
         - name: scheduler
@@ -36,6 +38,8 @@ spec:
               mountPath: /etc/renovate-scheduler/renovate-repos.json
               subPath: renovate-repos.json
               readOnly: true
+            - name: state
+              mountPath: /var/lib/renovate-scheduler
       volumes:
         - name: config
           configMap:
@@ -51,3 +55,5 @@ spec:
             items:
               - key: renovate-repos.json
                 path: renovate-repos.json
+        - name: state
+          emptyDir: {}

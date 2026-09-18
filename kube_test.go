@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestLoadEnvFile(t *testing.T) {
@@ -198,5 +200,63 @@ func TestPreflightRefsNoVolumeMounts(t *testing.T) {
 	want := []objectRef{{Kind: "secret", Name: "renovate-scheduler-secret", Field: "kubernetes.secret_name"}}
 	if got := preflightRefs(cfg); !reflect.DeepEqual(got, want) {
 		t.Fatalf("preflightRefs=%#v, want %#v", got, want)
+	}
+}
+
+func TestPreflight(t *testing.T) {
+	namespace := "renovate-scheduler"
+	envPath := filepath.Join(t.TempDir(), "renovate-task.env")
+	if err := os.WriteFile(envPath, []byte("RENOVATE_TOKEN=test\n"), 0o644); err != nil {
+		t.Fatalf("write env file: %v", err)
+	}
+
+	cfg := &Config{
+		Kubernetes: KubernetesConfig{Namespace: namespace, SecretName: "renovate-scheduler-secret"},
+		Renovate: RenovateConfig{
+			EnvFile: envPath,
+			VolumeMounts: []RenovateVolumeMountConfig{
+				{Source: "config_map", ConfigMapName: "renovate-config"},
+				{Source: "secret", SecretName: "extra-credentials"},
+				{Source: "persistent_volume_claim", PersistentVolumeClaim: "renovate-cache"},
+			},
+		},
+	}
+	client := fake.NewSimpleClientset(
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "renovate-scheduler-secret", Namespace: namespace}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "renovate-config", Namespace: namespace}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "extra-credentials", Namespace: namespace}},
+		&corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "renovate-cache", Namespace: namespace}},
+	)
+
+	if err := preflight(t.Context(), client, cfg); err != nil {
+		t.Fatalf("preflight() error = %v", err)
+	}
+}
+
+func TestPreflightReportsAllMissingDependencies(t *testing.T) {
+	cfg := &Config{
+		Kubernetes: KubernetesConfig{Namespace: "renovate-scheduler", SecretName: "renovate-scheduler-secret"},
+		Renovate: RenovateConfig{
+			EnvFile: filepath.Join(t.TempDir(), "missing.env"),
+			VolumeMounts: []RenovateVolumeMountConfig{
+				{Source: "config_map", ConfigMapName: "renovate-config"},
+				{Source: "persistent_volume_claim", PersistentVolumeClaim: "renovate-cache"},
+			},
+		},
+	}
+
+	err := preflight(t.Context(), fake.NewSimpleClientset(), cfg)
+	if err == nil {
+		t.Fatal("preflight() error = nil, want missing dependency error")
+	}
+	for _, field := range []string{
+		"renovate.env_file:",
+		"kubernetes.secret_name:",
+		"renovate.volume_mounts[0]:",
+		"renovate.volume_mounts[1]:",
+	} {
+		if !strings.Contains(err.Error(), field) {
+			t.Errorf("preflight() error = %q, want field %q", err, field)
+		}
 	}
 }
