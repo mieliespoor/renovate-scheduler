@@ -2,6 +2,10 @@
 
 A Kubernetes-based scheduler that orchestrates Renovate jobs across multiple repositories. This application continuously monitors a repositories JSON file, persists repository run state, and creates Kubernetes Jobs with configurable concurrency and run intervals.
 
+## License
+
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for the full text.
+
 ## Features
 
 - **Kubernetes-native**: Runs Renovate as Kubernetes Jobs
