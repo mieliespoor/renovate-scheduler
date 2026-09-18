@@ -1,0 +1,64 @@
+{{- include "renovate-scheduler.validateValues" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "renovate-scheduler.fullname" . }}
+  labels:
+    {{- include "renovate-scheduler.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "renovate-scheduler.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "renovate-scheduler.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        fsGroup: 65532
+      serviceAccountName: {{ include "renovate-scheduler.serviceAccountName" . }}
+      containers:
+        - name: scheduler
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["-config=/etc/renovate-scheduler/config.toml", "-repos=/etc/renovate-scheduler/renovate-repos.json"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/renovate-scheduler/config.toml
+              subPath: config.toml
+              readOnly: true
+            - name: config
+              mountPath: /etc/renovate-scheduler/renovate-task.env
+              subPath: renovate-task.env
+              readOnly: true
+            - name: repos
+              mountPath: /etc/renovate-scheduler/renovate-repos.json
+              subPath: renovate-repos.json
+              readOnly: true
+            - name: state
+              mountPath: /var/lib/renovate-scheduler
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "renovate-scheduler.configMapName" . }}
+            items:
+              - key: config.toml
+                path: config.toml
+              - key: renovate-task.env
+                path: renovate-task.env
+        - name: repos
+          configMap:
+            name: {{ include "renovate-scheduler.reposConfigMapName" . }}
+            items:
+              - key: renovate-repos.json
+                path: renovate-repos.json
+        - name: state
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "renovate-scheduler.pvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

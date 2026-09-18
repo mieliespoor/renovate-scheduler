@@ -27,6 +27,9 @@ bin/
 dist/
 build/
 renovate-scheduler
+!helm/
+!helm/renovate-scheduler/
+!helm/renovate-scheduler/**
 
 # Logs
 *.log

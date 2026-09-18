@@ -20,6 +20,68 @@ A Kubernetes-based scheduler that orchestrates Renovate jobs across multiple rep
 - **Minikube** (for local Kubernetes testing)
 - **kubectl** (for interacting with Kubernetes)
 
+## Install with Helm
+
+The chart is published as an OCI artifact to GitHub Container Registry. Replace
+`<version>` with a published chart version (without the `v` prefix).
+
+The chart defaults are not self-contained: it does not create the Secret it consumes or the
+`renovate-config` ConfigMap referenced by the default volume mount, and RBAC (required by the
+scheduler's startup preflight checks) is disabled by default. Before installing, either supply
+these prerequisites yourself or override the defaults so the chart creates them:
+
+- **Secret**: `scheduler.existingSecret` (default `renovate-scheduler-secret`) must already exist,
+  or set `scheduler.secretData` (and clear `scheduler.existingSecret`) to let the chart create it.
+- **`renovate-config` ConfigMap**: create it yourself, or point
+  `scheduler.config.renovate.volumeMounts` at a ConfigMap/Secret/PVC the chart manages.
+- **RBAC**: set `--set rbac.create=true` so the scheduler's ServiceAccount can read the
+  ConfigMaps/Secrets/PVCs it references during preflight.
+
+```bash
+kubectl create namespace renovate-scheduler
+kubectl create secret generic renovate-scheduler-secret \
+  --namespace renovate-scheduler \
+  --from-literal=RENOVATE_TOKEN=your_github_token
+kubectl create configmap renovate-config \
+  --namespace renovate-scheduler \
+  --from-file=config.json
+
+helm install renovate-scheduler \
+  oci://ghcr.io/mieliespoor/charts/renovate-scheduler \
+  --version <version> \
+  --namespace renovate-scheduler \
+  --set rbac.create=true
+```
+
+### Scheduler state persistence
+
+The scheduler tracks per-repository last-run timestamps in a state file (`scheduler.config.scheduler.stateFilePath`). The Helm chart's `persistence` values control where that file lives:
+
+| Value | Description | Default |
+|-------|-------------|---------|
+| `persistence.enabled` | Store state on a PersistentVolumeClaim instead of an emptyDir | `false` |
+| `persistence.existingClaim` | Reuse a pre-existing PVC name instead of letting the chart create one | `""` |
+| `persistence.storageClassName` | StorageClass for the chart-created PVC | `""` (cluster default) |
+| `persistence.accessModes` | Access modes for the chart-created PVC | `["ReadWriteOnce"]` |
+| `persistence.size` | Requested size for the chart-created PVC | `1Gi` |
+
+**Default behavior (`persistence.enabled: false`)**: state lives on an `emptyDir` and is lost whenever the pod is
+replaced (Helm upgrade, node eviction, manual delete). After a restart, the scheduler has no run history and
+dispatches every repository again. This is fine for throwaway/dev installs, but set `persistence.enabled: true`
+for any install where you don't want a restart to re-trigger every repository.
+
+```bash
+# create a claim managed by the chart
+helm upgrade --install renovate-scheduler helm/renovate-scheduler \
+  --set persistence.enabled=true \
+  --set persistence.size=1Gi
+
+# or reuse a claim you already manage
+helm upgrade --install renovate-scheduler helm/renovate-scheduler \
+  --set persistence.enabled=true \
+  --set persistence.existingClaim=renovate-scheduler-state
+```
+
 ## Local Setup with Minikube
 
 ### 1. Install Minikube

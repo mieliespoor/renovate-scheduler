@@ -72,6 +72,49 @@ jobs:
       - name: Verify binary
         run: ./renovate-scheduler --version 2>&1 || echo "Binary built successfully"
 
+  helm:
+    name: Validate Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: azure/setup-helm@v4
+
+      - name: Lint chart
+        run: helm lint helm/renovate-scheduler
+
+      - name: Render chart
+        run: helm template renovate-scheduler helm/renovate-scheduler > /dev/null
+
+      - name: Package chart
+        run: helm package helm/renovate-scheduler --destination dist
+
+  helm-integration:
+    name: Helm Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: helm/kind-action@v1.12.0
+        with:
+          cluster_name: renovate-scheduler-integration
+
+      - name: Build scheduler image
+        run: docker build --tag renovate-scheduler:e2e .
+
+      - name: Load scheduler image into Kind
+        run: kind load docker-image renovate-scheduler:e2e --name renovate-scheduler-integration
+
+      - name: Install chart and verify scheduler startup
+        run: bash integration/helm-smoke.sh
+
+      - name: Collect Kubernetes diagnostics
+        if: failure()
+        run: |
+          kubectl get all --namespace renovate-scheduler
+          kubectl describe pods --namespace renovate-scheduler
+          kubectl logs deployment/renovate-scheduler-renovate-scheduler --namespace renovate-scheduler --all-containers=true
+
   docker:
     name: Build Docker Image
     runs-on: ubuntu-latest

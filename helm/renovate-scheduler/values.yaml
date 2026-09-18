@@ -1,0 +1,68 @@
+image:
+  repository: ghcr.io/mieliespoor/renovate-scheduler
+  tag: dev
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: false
+
+# Storage for scheduler state (last-run timestamps per repository, at
+# scheduler.config.scheduler.stateFilePath). This is the chart's persistence contract:
+#   - enabled: false (default) -> state lives on an emptyDir. It does NOT survive pod
+#     replacement (Helm upgrade, node eviction/drain, manual delete). On restart, the
+#     scheduler has no run history and treats every repository as due immediately.
+#     Only use this for throwaway/dev installs where re-dispatching everything is fine.
+#   - enabled: true -> state lives on a PersistentVolumeClaim and survives pod restarts.
+#     Set existingClaim to reuse a claim you manage yourself, or leave it empty to let
+#     the chart create a claim sized by `size`/`storageClassName`.
+persistence:
+  enabled: false
+  existingClaim: ""
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  annotations: {}
+
+scheduler:
+  existingConfigMap: ""
+  existingReposConfigMap: ""
+  existingSecret: renovate-scheduler-secret
+  secretData: {}
+  repos: []
+  taskEnv:
+    RENOVATE_CONFIG_FILE: /usr/src/app/config.json
+    RENOVATE_AUTODISCOVER: "false"
+    RENOVATE_GIT_AUTHOR: Renovate Scheduler <renovate-scheduler@users.noreply.github.com>
+    RENOVATE_MINIMUM_RELEASE_AGE: 7 days
+    LOG_FORMAT: json
+    LOG_LEVEL: debug
+  config:
+    renovate:
+      image: renovate/renovate:latest
+      containerName: renovate
+      envFile: /etc/renovate-scheduler/renovate-task.env
+      volumeMounts:
+        - name: renovate-config
+          source: config_map
+          configMapName: renovate-config
+          mountPath: /usr/src/app/config.json
+          subPath: config.json
+          readOnly: true
+    kubernetes:
+      namespace: ""
+      serviceAccountName: ""
+    scheduler:
+      maxConcurrentTasks: 6
+      jobTimeoutSeconds: 3600
+      jobTTLSeconds: 3600
+      runIntervalMinutes: 60
+      reposPollSeconds: 10
+      dispatchPollSeconds: 10
+      stateFilePath: /var/lib/renovate-scheduler/scheduler-state.json
+    logging:
+      format: json

@@ -9,7 +9,10 @@ RUN go mod download
 
 COPY *.go ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" \
+ARG VERSION=dev
+
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
+    -ldflags="-s -w -X main.Version=${VERSION}" \
     -o /out/renovate-scheduler .
 
 FROM gcr.io/distroless/static:nonroot
