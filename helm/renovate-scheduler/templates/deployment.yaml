@@ -24,6 +24,10 @@ spec:
         - name: scheduler
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           args: ["-config=/etc/renovate-scheduler/config.toml", "-repos=/etc/renovate-scheduler/renovate-repos.json"]
           volumeMounts:
             - name: config

@@ -3,6 +3,11 @@ image:
   tag: dev
   pullPolicy: IfNotPresent
 
+# Resource requests and limits for the scheduler container.
+# Set requests and limits independently to satisfy cluster policies (for example,
+# use equal memory values when the request-to-limit ratio must be 1).
+resources: {}
+
 serviceAccount:
   create: true
   name: ""

@@ -86,6 +86,25 @@ helm upgrade --install renovate-scheduler helm/renovate-scheduler \
   --set persistence.existingClaim=renovate-scheduler-state
 ```
 
+### Scheduler container resources
+
+Configure CPU and memory requests/limits for the scheduler container through the chart's
+`resources` value. This is empty by default; set values to meet your cluster's admission
+policies. For policies requiring the memory request-to-limit ratio to be 1, give both
+fields the same value:
+
+```yaml
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+```
+
+Pass this via a values file or Helm `--set` overrides when installing/upgrading.
+
 ## Local Setup with Minikube
 
 ### 1. Install Minikube
