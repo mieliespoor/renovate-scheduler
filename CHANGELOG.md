@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1](https://github.com/mieliespoor/renovate-scheduler/compare/v1.2.0...v1.2.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* add resource configuration for scheduler container in values.yaml and deployment.yaml ([bf43c1c](https://github.com/mieliespoor/renovate-scheduler/commit/bf43c1cbcaa164282d74af0cf50c923ab537a20a))
+
 ## [v1.2.0](https://github.com/mieliespoor/renovate-scheduler/compare/v1.1.0...v1.2.0) (2026-09-18)
 
 
