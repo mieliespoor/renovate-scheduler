@@ -387,6 +387,7 @@ kubectl create secret generic renovate-scheduler-secret \
 | `renovate.container_name` | Container name in the pod | No (default: "renovate") |
 | `renovate.env_file` | Path to a `.env` file injected into container `Env` | No |
 | `renovate.volume_mounts` | List of mounts for Renovate container (`host_path`, `config_map`, `secret`, `persistent_volume_claim`) | No |
+| `renovate.resources.requests` / `renovate.resources.limits` | Tables of resource name (`cpu`, `memory`, `ephemeral-storage`) to Kubernetes quantity, applied to each Renovate Job container | No (default: none) |
 | `kubernetes.namespace` | Kubernetes namespace | No (default: "default") |
 | `kubernetes.service_account_name` | Service account for jobs | No |
 | `kubernetes.secret_name` | Secret containing credentials | Yes |
@@ -399,6 +400,24 @@ kubectl create secret generic renovate-scheduler-secret \
 | `scheduler.job_timeout_seconds` | Job timeout in seconds | No |
 | `scheduler.job_ttl_seconds` | Job TTL in seconds | No |
 | `logging.format` | Application log output format (`text` or `json`) | No (default: `text`) |
+
+### Renovate Job Resources
+
+The Renovate Job containers the scheduler creates are separate from the scheduler pod, so they
+have their own resources. Quantities are validated when the config is loaded.
+
+```toml
+[renovate.resources.requests]
+  cpu = "500m"
+  memory = "1Gi"
+
+[renovate.resources.limits]
+  cpu = "2"
+  memory = "1Gi"
+```
+
+With Helm, set `scheduler.config.renovate.resources` (the top-level `resources` value only
+applies to the scheduler pod).
 
 ### Structured Logging
 

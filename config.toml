@@ -5,6 +5,14 @@
   container_name = "renovate"
   env_file = "renovate-task.env"
 
+  # Optional: resources for the Renovate Job containers (Kubernetes quantities).
+  [renovate.resources.requests]
+    cpu = "500m"
+    memory = "1Gi"
+  [renovate.resources.limits]
+    cpu = "2"
+    memory = "1Gi"
+
   # Optional: mount data into the Renovate container.
   # Supported sources: host_path, config_map, secret, persistent_volume_claim.
   # You can define multiple mounts with [[renovate.volume_mounts]].

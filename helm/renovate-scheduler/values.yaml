@@ -51,6 +51,14 @@ scheduler:
       image: renovate/renovate:latest
       containerName: renovate
       envFile: /etc/renovate-scheduler/renovate-task.env
+      # Resources for the child Renovate Job containers (not the scheduler pod).
+      resources:
+        requests:
+          cpu: 500m
+          memory: 1Gi
+        limits:
+          cpu: "2"
+          memory: 1Gi
       volumeMounts:
         - name: renovate-config
           source: config_map

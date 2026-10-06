@@ -7,6 +7,8 @@ import (
 	"unicode"
 
 	"github.com/BurntSushi/toml"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const defaultMaxConcurrentTasks = 6
@@ -32,6 +34,14 @@ type RenovateConfig struct {
 	ContainerName string                      `toml:"container_name"`
 	EnvFile       string                      `toml:"env_file"`
 	VolumeMounts  []RenovateVolumeMountConfig `toml:"volume_mounts"`
+	Resources     RenovateResourcesConfig     `toml:"resources"`
+}
+
+// RenovateResourcesConfig maps resource names (cpu, memory, ephemeral-storage)
+// to Kubernetes quantities for the Renovate Job container.
+type RenovateResourcesConfig struct {
+	Requests map[string]string `toml:"requests"`
+	Limits   map[string]string `toml:"limits"`
 }
 
 type RenovateVolumeMountConfig struct {
@@ -88,6 +98,32 @@ func (m RenovateVolumeMountConfig) normalizedSource() (string, error) {
 	}
 
 	return "", nil
+}
+
+func (r RenovateResourcesConfig) build() (corev1.ResourceRequirements, error) {
+	var out corev1.ResourceRequirements
+	parse := func(kind string, in map[string]string) (corev1.ResourceList, error) {
+		if len(in) == 0 {
+			return nil, nil
+		}
+		list := corev1.ResourceList{}
+		for name, value := range in {
+			q, err := resource.ParseQuantity(value)
+			if err != nil {
+				return nil, fmt.Errorf("%s.%s %q: %w", kind, name, value, err)
+			}
+			list[corev1.ResourceName(name)] = q
+		}
+		return list, nil
+	}
+	var err error
+	if out.Requests, err = parse("requests", r.Requests); err != nil {
+		return out, err
+	}
+	if out.Limits, err = parse("limits", r.Limits); err != nil {
+		return out, err
+	}
+	return out, nil
 }
 
 func isWindowsDrivePath(path string) bool {
@@ -149,6 +185,10 @@ func loadConfig(path string) (*Config, error) {
 	cfg.Logging.Format = strings.TrimSpace(strings.ToLower(cfg.Logging.Format))
 	if cfg.Logging.Format != "text" && cfg.Logging.Format != "json" {
 		return nil, fmt.Errorf("config %q: logging.format must be either text or json", path)
+	}
+
+	if _, err := cfg.Renovate.Resources.build(); err != nil {
+		return nil, fmt.Errorf("config %q: renovate.resources: %w", path, err)
 	}
 
 	for i, mount := range cfg.Renovate.VolumeMounts {

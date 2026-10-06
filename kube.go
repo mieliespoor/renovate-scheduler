@@ -228,6 +228,10 @@ func buildJob(cfg *Config, repo string, envVars []corev1.EnvVar) (*batchv1.Job, 
 	if err != nil {
 		return nil, fmt.Errorf("building volume mounts: %w", err)
 	}
+	resources, err := cfg.Renovate.Resources.build()
+	if err != nil {
+		return nil, fmt.Errorf("building resources: %w", err)
+	}
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName(repo),
@@ -255,6 +259,7 @@ func buildJob(cfg *Config, repo string, envVars []corev1.EnvVar) (*batchv1.Job, 
 							Args:         []string{repo},
 							Env:          envVars,
 							VolumeMounts: containerVolumeMounts,
+							Resources:    resources,
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									SecretRef: &corev1.SecretEnvSource{

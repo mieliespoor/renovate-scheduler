@@ -11,6 +11,22 @@ data:
       image = {{ .Values.scheduler.config.renovate.image | quote }}
       container_name = {{ .Values.scheduler.config.renovate.containerName | quote }}
       env_file = {{ .Values.scheduler.config.renovate.envFile | quote }}
+    {{- with .Values.scheduler.config.renovate.resources }}
+    {{- with .requests }}
+
+    [renovate.resources.requests]
+      {{- range $k, $v := . }}
+      {{ $k }} = {{ $v | toString | quote }}
+      {{- end }}
+    {{- end }}
+    {{- with .limits }}
+
+    [renovate.resources.limits]
+      {{- range $k, $v := . }}
+      {{ $k }} = {{ $v | toString | quote }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
     {{- range .Values.scheduler.config.renovate.volumeMounts }}
 
     [[renovate.volume_mounts]]
