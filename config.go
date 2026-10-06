@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"unicode"
@@ -35,6 +37,22 @@ type RenovateConfig struct {
 	EnvFile       string                      `toml:"env_file"`
 	VolumeMounts  []RenovateVolumeMountConfig `toml:"volume_mounts"`
 	Resources     RenovateResourcesConfig     `toml:"resources"`
+	WorkloadJSON  string                      `toml:"workload_json"`
+	Workload      RenovateWorkloadConfig      `toml:"-"`
+}
+
+// RenovateWorkloadConfig contains Kubernetes Job pod and container options.
+// It is populated from workload_json so Helm can pass through native Kubernetes
+// values without growing a parallel TOML schema for complex nested API types.
+type RenovateWorkloadConfig struct {
+	ImagePullPolicy    corev1.PullPolicy             `json:"imagePullPolicy"`
+	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets"`
+	SecurityContext    *corev1.SecurityContext       `json:"securityContext"`
+	PodSecurityContext *corev1.PodSecurityContext    `json:"podSecurityContext"`
+	NodeSelector       map[string]string             `json:"nodeSelector"`
+	Tolerations        []corev1.Toleration           `json:"tolerations"`
+	Affinity           *corev1.Affinity              `json:"affinity"`
+	PriorityClassName  string                        `json:"priorityClassName"`
 }
 
 // RenovateResourcesConfig maps resource names (cpu, memory, ephemeral-storage)
@@ -126,6 +144,31 @@ func (r RenovateResourcesConfig) build() (corev1.ResourceRequirements, error) {
 	return out, nil
 }
 
+func (r *RenovateConfig) decodeWorkloadConfig() error {
+	if strings.TrimSpace(r.WorkloadJSON) == "" {
+		return nil
+	}
+
+	decoder := json.NewDecoder(strings.NewReader(r.WorkloadJSON))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&r.Workload); err != nil {
+		return fmt.Errorf("renovate.workload_json: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("renovate.workload_json: contains multiple JSON values")
+		}
+		return fmt.Errorf("renovate.workload_json: %w", err)
+	}
+
+	switch r.Workload.ImagePullPolicy {
+	case "", corev1.PullAlways, corev1.PullNever, corev1.PullIfNotPresent:
+	default:
+		return fmt.Errorf("renovate.workload_json: imagePullPolicy must be Always, Never, or IfNotPresent")
+	}
+	return nil
+}
+
 func isWindowsDrivePath(path string) bool {
 	if len(path) < 3 {
 		return false
@@ -176,6 +219,9 @@ func loadConfig(path string) (*Config, error) {
 
 	if cfg.Renovate.Image == "" {
 		return nil, fmt.Errorf("config %q: renovate.image must be set", path)
+	}
+	if err := cfg.Renovate.decodeWorkloadConfig(); err != nil {
+		return nil, fmt.Errorf("config %q: %w", path, err)
 	}
 
 	if cfg.Kubernetes.SecretName == "" {

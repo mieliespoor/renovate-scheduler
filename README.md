@@ -388,6 +388,7 @@ kubectl create secret generic renovate-scheduler-secret \
 | `renovate.env_file` | Path to a `.env` file injected into container `Env` | No |
 | `renovate.volume_mounts` | List of mounts for Renovate container (`host_path`, `config_map`, `secret`, `persistent_volume_claim`) | No |
 | `renovate.resources.requests` / `renovate.resources.limits` | Tables of resource name (`cpu`, `memory`, `ephemeral-storage`) to Kubernetes quantity, applied to each Renovate Job container | No (default: none) |
+| `renovate.workload_json` | JSON-encoded Kubernetes workload options used by the Helm chart for the Renovate Job pod/container | No |
 | `kubernetes.namespace` | Kubernetes namespace | No (default: "default") |
 | `kubernetes.service_account_name` | Service account for jobs | No |
 | `kubernetes.secret_name` | Secret containing credentials | Yes |
@@ -418,6 +419,43 @@ have their own resources. Quantities are validated when the config is loaded.
 
 With Helm, set `scheduler.config.renovate.resources` (the top-level `resources` value only
 applies to the scheduler pod).
+
+### Renovate Job workload settings
+
+The chart's `scheduler.config.renovate.workload` value configures Kubernetes fields on the
+Renovate Job (not Renovate application settings). It supports `imagePullPolicy`,
+`imagePullSecrets`, container `securityContext`, pod `podSecurityContext`, `nodeSelector`,
+`tolerations`, `affinity`, and `priorityClassName`. For example:
+
+```yaml
+scheduler:
+  config:
+    renovate:
+      workload:
+        imagePullPolicy: IfNotPresent
+        imagePullSecrets:
+          - name: renovate-registry
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        podSecurityContext:
+          runAsNonRoot: true
+          fsGroup: 65532
+        nodeSelector:
+          workload: renovate
+        tolerations:
+          - key: workload
+            operator: Equal
+            value: renovate
+            effect: NoSchedule
+        affinity: {}
+        priorityClassName: batch-low
+```
+
+These use the Kubernetes API's standard field shapes. Leave fields empty or omit them to use
+Kubernetes defaults. When supplying an existing scheduler ConfigMap instead of letting Helm
+generate it, set `renovate.workload_json` in `config.toml` to a JSON-encoded string containing
+the same camelCase fields.
 
 ### Structured Logging
 

@@ -112,10 +112,28 @@ func TestBuildVolumeMountsAndVolumesInvalidSource(t *testing.T) {
 }
 
 func TestBuildJobIncludesTimeoutTTLAndEnv(t *testing.T) {
+	allowPrivilegeEscalation := false
+	runAsNonRoot := true
+	fsGroup := int64(65532)
 	cfg := &Config{
 		Renovate: RenovateConfig{
 			Image:         "renovate/renovate:latest",
 			ContainerName: "renovate",
+			Workload: RenovateWorkloadConfig{
+				ImagePullPolicy:  corev1.PullAlways,
+				ImagePullSecrets: []corev1.LocalObjectReference{{Name: "registry-creds"}},
+				SecurityContext: &corev1.SecurityContext{
+					AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+				},
+				PodSecurityContext: &corev1.PodSecurityContext{
+					RunAsNonRoot: &runAsNonRoot,
+					FSGroup:      &fsGroup,
+				},
+				NodeSelector:      map[string]string{"workload": "renovate"},
+				Tolerations:       []corev1.Toleration{{Key: "batch", Operator: corev1.TolerationOpEqual, Value: "true", Effect: corev1.TaintEffectNoSchedule}},
+				Affinity:          &corev1.Affinity{},
+				PriorityClassName: "batch-low",
+			},
 			VolumeMounts: []RenovateVolumeMountConfig{
 				{
 					Source:        "config_map",
@@ -149,6 +167,15 @@ func TestBuildJobIncludesTimeoutTTLAndEnv(t *testing.T) {
 	if podSpec.AutomountServiceAccountToken == nil || *podSpec.AutomountServiceAccountToken {
 		t.Fatalf("AutomountServiceAccountToken=%v, want pointer to false", podSpec.AutomountServiceAccountToken)
 	}
+	if len(podSpec.ImagePullSecrets) != 1 || podSpec.ImagePullSecrets[0].Name != "registry-creds" {
+		t.Fatalf("unexpected image pull secrets: %#v", podSpec.ImagePullSecrets)
+	}
+	if podSpec.SecurityContext == nil || podSpec.SecurityContext.RunAsNonRoot == nil || !*podSpec.SecurityContext.RunAsNonRoot || podSpec.SecurityContext.FSGroup == nil || *podSpec.SecurityContext.FSGroup != fsGroup {
+		t.Fatalf("unexpected pod security context: %#v", podSpec.SecurityContext)
+	}
+	if podSpec.NodeSelector["workload"] != "renovate" || len(podSpec.Tolerations) != 1 || podSpec.Affinity == nil || podSpec.PriorityClassName != "batch-low" {
+		t.Fatalf("unexpected pod scheduling config: %#v", podSpec)
+	}
 	if job.Spec.ActiveDeadlineSeconds == nil || *job.Spec.ActiveDeadlineSeconds != 120 {
 		t.Fatalf("unexpected ActiveDeadlineSeconds: %v", job.Spec.ActiveDeadlineSeconds)
 	}
@@ -157,6 +184,12 @@ func TestBuildJobIncludesTimeoutTTLAndEnv(t *testing.T) {
 	}
 
 	container := job.Spec.Template.Spec.Containers[0]
+	if container.ImagePullPolicy != corev1.PullAlways {
+		t.Fatalf("ImagePullPolicy=%q, want Always", container.ImagePullPolicy)
+	}
+	if container.SecurityContext == nil || container.SecurityContext.AllowPrivilegeEscalation == nil || *container.SecurityContext.AllowPrivilegeEscalation {
+		t.Fatalf("unexpected container security context: %#v", container.SecurityContext)
+	}
 	if container.Name == "renovate" {
 		t.Fatalf("container name should be transformed to include repo and suffix")
 	}

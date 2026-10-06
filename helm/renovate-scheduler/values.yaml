@@ -59,6 +59,16 @@ scheduler:
         limits:
           cpu: "2"
           memory: 1Gi
+      # Kubernetes Job pod/container options; these do not configure Renovate itself.
+      workload:
+        imagePullPolicy: ""
+        imagePullSecrets: []
+        securityContext: {}
+        podSecurityContext: {}
+        nodeSelector: {}
+        tolerations: []
+        affinity: {}
+        priorityClassName: ""
       volumeMounts:
         - name: renovate-config
           source: config_map

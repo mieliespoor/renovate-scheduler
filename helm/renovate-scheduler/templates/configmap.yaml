@@ -11,6 +11,7 @@ data:
       image = {{ .Values.scheduler.config.renovate.image | quote }}
       container_name = {{ .Values.scheduler.config.renovate.containerName | quote }}
       env_file = {{ .Values.scheduler.config.renovate.envFile | quote }}
+      workload_json = {{ .Values.scheduler.config.renovate.workload | toJson | quote }}
     {{- with .Values.scheduler.config.renovate.resources }}
     {{- with .requests }}
 

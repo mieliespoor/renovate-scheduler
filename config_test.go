@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -104,6 +106,56 @@ secret_name = "renovate-secret"
 	}
 	if cfg.Logging.Format != defaultLogFormat {
 		t.Fatalf("Logging.Format=%q, want %q", cfg.Logging.Format, defaultLogFormat)
+	}
+}
+
+func TestLoadConfigDecodesWorkloadJSON(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.toml")
+	workloadJSON := `{"imagePullPolicy":"Always","imagePullSecrets":[{"name":"registry-creds"}],"nodeSelector":{"workload":"renovate"},"tolerations":[{"key":"batch","operator":"Equal","value":"true","effect":"NoSchedule"}],"priorityClassName":"batch-low","securityContext":{"allowPrivilegeEscalation":false},"podSecurityContext":{"runAsNonRoot":true},"affinity":{"nodeAffinity":{}}}`
+	content := "[renovate]\nimage = \"renovate/renovate:latest\"\nworkload_json = " + strconv.Quote(workloadJSON) + "\n\n[kubernetes]\nsecret_name = \"renovate-secret\"\n"
+	if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	cfg, err := loadConfig(cfgPath)
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if cfg.Renovate.Workload.ImagePullPolicy != "Always" {
+		t.Fatalf("ImagePullPolicy=%q, want Always", cfg.Renovate.Workload.ImagePullPolicy)
+	}
+	if len(cfg.Renovate.Workload.ImagePullSecrets) != 1 || cfg.Renovate.Workload.ImagePullSecrets[0].Name != "registry-creds" {
+		t.Fatalf("unexpected ImagePullSecrets: %#v", cfg.Renovate.Workload.ImagePullSecrets)
+	}
+	if cfg.Renovate.Workload.NodeSelector["workload"] != "renovate" || len(cfg.Renovate.Workload.Tolerations) != 1 {
+		t.Fatalf("unexpected node placement config: %#v", cfg.Renovate.Workload)
+	}
+	if cfg.Renovate.Workload.PriorityClassName != "batch-low" || cfg.Renovate.Workload.Affinity == nil {
+		t.Fatalf("unexpected scheduling config: %#v", cfg.Renovate.Workload)
+	}
+	if cfg.Renovate.Workload.SecurityContext == nil || cfg.Renovate.Workload.SecurityContext.AllowPrivilegeEscalation == nil || *cfg.Renovate.Workload.SecurityContext.AllowPrivilegeEscalation {
+		t.Fatalf("unexpected container security context: %#v", cfg.Renovate.Workload.SecurityContext)
+	}
+	if cfg.Renovate.Workload.PodSecurityContext == nil || cfg.Renovate.Workload.PodSecurityContext.RunAsNonRoot == nil || !*cfg.Renovate.Workload.PodSecurityContext.RunAsNonRoot {
+		t.Fatalf("unexpected pod security context: %#v", cfg.Renovate.Workload.PodSecurityContext)
+	}
+}
+
+func TestLoadConfigRejectsInvalidWorkloadJSON(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.toml")
+	workloadJSON, err := json.Marshal(map[string]string{"imagePullPolicy": "Sometimes"})
+	if err != nil {
+		t.Fatalf("marshal workload config: %v", err)
+	}
+	content := "[renovate]\nimage = \"renovate/renovate:latest\"\nworkload_json = " + strconv.Quote(string(workloadJSON)) + "\n\n[kubernetes]\nsecret_name = \"renovate-secret\"\n"
+	if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	if _, err := loadConfig(cfgPath); err == nil || !strings.Contains(err.Error(), "imagePullPolicy") {
+		t.Fatalf("expected imagePullPolicy validation error, got %v", err)
 	}
 }
 

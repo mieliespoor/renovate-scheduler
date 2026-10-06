@@ -252,14 +252,22 @@ func buildJob(cfg *Config, repo string, envVars []corev1.EnvVar) (*batchv1.Job, 
 					ServiceAccountName:           cfg.Kubernetes.ServiceAccountName,
 					AutomountServiceAccountToken: new(false),
 					Volumes:                      podVolumes,
+					ImagePullSecrets:             cfg.Renovate.Workload.ImagePullSecrets,
+					SecurityContext:              cfg.Renovate.Workload.PodSecurityContext,
+					NodeSelector:                 cfg.Renovate.Workload.NodeSelector,
+					Tolerations:                  cfg.Renovate.Workload.Tolerations,
+					Affinity:                     cfg.Renovate.Workload.Affinity,
+					PriorityClassName:            cfg.Renovate.Workload.PriorityClassName,
 					Containers: []corev1.Container{
 						{
-							Name:         containerName,
-							Image:        cfg.Renovate.Image,
-							Args:         []string{repo},
-							Env:          envVars,
-							VolumeMounts: containerVolumeMounts,
-							Resources:    resources,
+							Name:            containerName,
+							Image:           cfg.Renovate.Image,
+							ImagePullPolicy: cfg.Renovate.Workload.ImagePullPolicy,
+							Args:            []string{repo},
+							Env:             envVars,
+							VolumeMounts:    containerVolumeMounts,
+							Resources:       resources,
+							SecurityContext: cfg.Renovate.Workload.SecurityContext,
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									SecretRef: &corev1.SecretEnvSource{
