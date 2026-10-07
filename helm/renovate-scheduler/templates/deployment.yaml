@@ -6,6 +6,8 @@ metadata:
   labels:
     {{- include "renovate-scheduler.labels" . | nindent 4 }}
 spec:
+  strategy:
+    type: Recreate
   replicas: 1
   selector:
     matchLabels:
