@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3](https://github.com/mieliespoor/renovate-scheduler/compare/v1.2.2...v1.2.3) (2026-10-07)
+
+
+### Bug Fixes
+
+* add checksum annotation for config in deployment template ([5253f1b](https://github.com/mieliespoor/renovate-scheduler/commit/5253f1ba3ca26adb4596ded10d8b1d7c5d798f1f))
+* add deployment strategy type to deployment.yaml ([8edb773](https://github.com/mieliespoor/renovate-scheduler/commit/8edb7730efa100f1221471feb3868ef6923aa079))
+* update args and volume mount paths for scheduler container in deployment.yaml ([3950734](https://github.com/mieliespoor/renovate-scheduler/commit/3950734927c30ea11f7fd055f8a14f867df7f1b1))
+
 ## [1.2.2](https://github.com/mieliespoor/renovate-scheduler/compare/v1.2.1...v1.2.2) (2026-10-06)
 
 
