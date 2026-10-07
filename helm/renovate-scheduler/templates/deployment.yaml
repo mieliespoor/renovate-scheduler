@@ -28,7 +28,7 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          args: ["-config=/etc/renovate-scheduler/config.toml", "-repos=/etc/renovate-scheduler/renovate-repos.json"]
+          args: ["-config=/etc/renovate-scheduler/config.toml", "-repos=/etc/renovate-scheduler/repos/renovate-repos.json"]
           volumeMounts:
             - name: config
               mountPath: /etc/renovate-scheduler/config.toml
@@ -39,8 +39,7 @@ spec:
               subPath: renovate-task.env
               readOnly: true
             - name: repos
-              mountPath: /etc/renovate-scheduler/renovate-repos.json
-              subPath: renovate-repos.json
+              mountPath: /etc/renovate-scheduler/repos
               readOnly: true
             - name: state
               mountPath: /var/lib/renovate-scheduler
