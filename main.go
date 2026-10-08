@@ -78,7 +78,10 @@ func run(configPath, reposPath string) error {
 
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("interrupted: %w", ctx.Err())
+		// dispatchLoop waits for active runs, allowing them to persist completion.
+		<-errCh
+		<-errCh
+		return nil
 	case err := <-errCh:
 		if err != nil {
 			return err

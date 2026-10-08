@@ -321,6 +321,51 @@ func TestDispatchLoopStopsOnContextCancel(t *testing.T) {
 	}
 }
 
+func TestDispatchLoopCompletesInFlightRunsBeforeShutdown(t *testing.T) {
+	cfg := &Config{
+		Scheduler: SchedulerConfig{
+			MaxConcurrentTasks:  1,
+			RunIntervalMinutes:  60,
+			DispatchPollSeconds: 1,
+		},
+	}
+	store := &fakeRepoStore{claimDueResult: []string{"org/repo-a"}}
+
+	originalFunc := runRenovateJob
+	defer func() { runRenovateJob = originalFunc }()
+	started := make(chan struct{})
+	runRenovateJob = func(ctx context.Context, client interface{}, cfg *Config, repo string) error {
+		close(started)
+		<-ctx.Done()
+		return ctx.Err()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- dispatchLoop(ctx, nil, cfg, store) }()
+
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("repository run did not start")
+	}
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("dispatchLoop: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("dispatchLoop did not wait for the in-flight run")
+	}
+
+	completeCalls := store.getCompleteCalls()
+	if len(completeCalls) != 1 || completeCalls[0].repo != "org/repo-a" {
+		t.Fatalf("expected completed in-flight repository, got %v", completeCalls)
+	}
+}
+
 func TestIngestLoopStopsOnContextCancel(t *testing.T) {
 	dir := t.TempDir()
 	reposPath := filepath.Join(dir, "repos.json")

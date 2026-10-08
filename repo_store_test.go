@@ -169,3 +169,40 @@ func TestJSONRepoStorePersistsAndReloads(t *testing.T) {
 		t.Fatalf("InProgress should be false after complete")
 	}
 }
+
+func TestJSONRepoStoreClearsInProgressClaimsOnReload(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "scheduler-state.json")
+	store, err := newJSONRepoStore(statePath)
+	if err != nil {
+		t.Fatalf("newJSONRepoStore: %v", err)
+	}
+	if err := store.SyncRepos([]string{"org/repo-a"}); err != nil {
+		t.Fatalf("SyncRepos: %v", err)
+	}
+
+	now := time.Date(2026, 6, 12, 12, 0, 0, 0, time.UTC)
+	claimed, err := store.ClaimDue(now, 0, 1)
+	if err != nil {
+		t.Fatalf("ClaimDue: %v", err)
+	}
+	if len(claimed) != 1 {
+		t.Fatalf("expected one claimed repo, got %v", claimed)
+	}
+
+	reloaded, err := newJSONRepoStore(statePath)
+	if err != nil {
+		t.Fatalf("reload store: %v", err)
+	}
+	state := reloaded.state.Repos["org/repo-a"]
+	if state.InProgress {
+		t.Fatal("reload should clear an unfinished claim from a previous process")
+	}
+
+	claimedAgain, err := reloaded.ClaimDue(now.Add(time.Minute), 0, 1)
+	if err != nil {
+		t.Fatalf("ClaimDue after reload: %v", err)
+	}
+	if len(claimedAgain) != 1 || claimedAgain[0] != "org/repo-a" {
+		t.Fatalf("expected repo to be claimable after reload, got %v", claimedAgain)
+	}
+}

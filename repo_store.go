@@ -175,6 +175,9 @@ func (s *JSONRepoStore) load() error {
 	if state.Version == 0 {
 		state.Version = 1
 	}
+	for _, repo := range state.Repos {
+		repo.InProgress = false
+	}
 	s.state = state
 	return nil
 }

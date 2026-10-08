@@ -74,6 +74,16 @@ replaced (Helm upgrade, node eviction, manual delete). After a restart, the sche
 dispatches every repository again. This is fine for throwaway/dev installs, but set `persistence.enabled: true`
 for any install where you don't want a restart to re-trigger every repository.
 
+`in_progress` is process-local scheduling state, not a durable Kubernetes Job lease. When the scheduler starts,
+it clears any persisted `in_progress` flags because it cannot safely track work owned by a previous process. This
+recovers repositories after an ungraceful stop, including a SIGKILL, OOM kill, or node loss. The recorded
+`last_started` time is retained, so normal run-interval scheduling still applies.
+
+On SIGTERM or SIGINT, the scheduler stops accepting new work and waits for active dispatches to persist their
+completion state before exiting. An ungraceful restart can leave an older Kubernetes Job running; because the
+scheduler does not re-adopt Jobs from a previous process, a repository may be dispatched again once its run
+interval elapses if that older Job is still active.
+
 ```bash
 # create a claim managed by the chart
 helm upgrade --install renovate-scheduler helm/renovate-scheduler \
