@@ -3,6 +3,10 @@ image:
   tag: dev
   pullPolicy: IfNotPresent
 
+# Additional Kubernetes objects installed with this chart, such as External Secrets
+# Operator SecretStores and ExternalSecrets. Each item is rendered as a Helm template.
+extraObjects: []
+
 # Additional labels for the scheduler Pod. The chart's identity labels are retained.
 podLabels: {}
 

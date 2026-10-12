@@ -57,6 +57,59 @@ helm install renovate-scheduler \
   --set rbac.create=true
 ```
 
+### Additional Kubernetes objects
+
+Use `extraObjects` to install arbitrary Kubernetes resources alongside the scheduler.
+Each item is rendered as a Helm template, so it can use values such as
+`{{ .Release.Namespace }}` and `{{ include "renovate-scheduler.fullname" . }}`. This
+is useful for resources managed by another controller, including External Secrets
+Operator resources.
+
+For example, this provisions a Secret Server-backed `SecretStore` and creates the
+`renovate-scheduler-secret` expected by the chart. The referenced `secretserver-auth`
+Secret must already exist and contain `username` and `password` keys.
+
+```yaml
+extraObjects:
+  - apiVersion: external-secrets.io/v1
+    kind: SecretStore
+    metadata:
+      name: secretserver
+    spec:
+      provider:
+        secretserver:
+          serverURL: https://secretserver.example.com
+          username:
+            secretRef:
+              name: secretserver-auth
+              key: username
+          password:
+            secretRef:
+              name: secretserver-auth
+              key: password
+  - apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: renovate-scheduler-token
+    spec:
+      refreshInterval: 1h
+      secretStoreRef:
+        name: secretserver
+        kind: SecretStore
+      target:
+        name: renovate-scheduler-secret
+        creationPolicy: Owner
+      data:
+        - secretKey: RENOVATE_TOKEN
+          remoteRef:
+            key: "12345"
+            property: token
+```
+
+The External Secrets Operator CRDs and controller must be installed before this
+release. To use a different generated Secret name, set `scheduler.existingSecret` to
+match `spec.target.name`.
+
 ### Scheduler state persistence
 
 The scheduler tracks per-repository last-run timestamps in a state file (`scheduler.config.scheduler.stateFilePath`). The Helm chart's `persistence` values control where that file lives:
