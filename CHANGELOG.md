@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/mieliespoor/renovate-scheduler/compare/v1.2.4...v1.3.0) (2026-10-12)
+
+
+### Features
+
+* add support for additional Kubernetes objects in Helm chart ([12e4be1](https://github.com/mieliespoor/renovate-scheduler/commit/12e4be1c4e3ca0ec195537999883041fd915954d))
+* add support for podLabels in Renovate workload configuration ([a7333f5](https://github.com/mieliespoor/renovate-scheduler/commit/a7333f51519deea1e3472222c23573432be2bb17))
+
+
+### Bug Fixes
+
+* **deps:** update golang.org/x/net, golang.org/x/sys, golang.org/x/term, and golang.org/x/text dependencies to latest versions ([b93a64f](https://github.com/mieliespoor/renovate-scheduler/commit/b93a64f85488be78a780b5d8fc59859d47e47bd6))
+* **deps:** update golang.org/x/net, golang.org/x/sys, golang.org/x/term, and golang.org/x/text dependencies to latest versions ([717fb41](https://github.com/mieliespoor/renovate-scheduler/commit/717fb41cdb68a79e2f7ddcf3f58990a590499ebf))
+* **deps:** update golang.org/x/text dependency to v0.41.0 ([edf57a1](https://github.com/mieliespoor/renovate-scheduler/commit/edf57a121ce3db1b9a9897319a108867225623bd))
+
 ## [1.2.4](https://github.com/mieliespoor/renovate-scheduler/compare/v1.2.3...v1.2.4) (2026-10-08)
 
 
