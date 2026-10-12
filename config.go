@@ -47,6 +47,7 @@ type RenovateConfig struct {
 type RenovateWorkloadConfig struct {
 	ImagePullPolicy    corev1.PullPolicy             `json:"imagePullPolicy"`
 	ImagePullSecrets   []corev1.LocalObjectReference `json:"imagePullSecrets"`
+	PodLabels          map[string]string             `json:"podLabels"`
 	SecurityContext    *corev1.SecurityContext       `json:"securityContext"`
 	PodSecurityContext *corev1.PodSecurityContext    `json:"podSecurityContext"`
 	NodeSelector       map[string]string             `json:"nodeSelector"`

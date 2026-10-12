@@ -122,6 +122,10 @@ func TestBuildJobIncludesTimeoutTTLAndEnv(t *testing.T) {
 			Workload: RenovateWorkloadConfig{
 				ImagePullPolicy:  corev1.PullAlways,
 				ImagePullSecrets: []corev1.LocalObjectReference{{Name: "registry-creds"}},
+				PodLabels: map[string]string{
+					"team":                         "platform",
+					"app.kubernetes.io/managed-by": "custom-manager",
+				},
 				SecurityContext: &corev1.SecurityContext{
 					AllowPrivilegeEscalation: &allowPrivilegeEscalation,
 				},
@@ -162,6 +166,12 @@ func TestBuildJobIncludesTimeoutTTLAndEnv(t *testing.T) {
 
 	if job.Namespace != "ns" {
 		t.Fatalf("namespace=%q, want ns", job.Namespace)
+	}
+	if job.Labels["team"] != "platform" || job.Spec.Template.Labels["team"] != "platform" {
+		t.Fatalf("expected configured labels on Job and Pod: job=%#v pod=%#v", job.Labels, job.Spec.Template.Labels)
+	}
+	if job.Labels["app.kubernetes.io/managed-by"] != "renovate-scheduler" || job.Spec.Template.Labels["app.kubernetes.io/managed-by"] != "renovate-scheduler" {
+		t.Fatalf("scheduler labels must not be overridden: job=%#v pod=%#v", job.Labels, job.Spec.Template.Labels)
 	}
 	podSpec := job.Spec.Template.Spec
 	if podSpec.AutomountServiceAccountToken == nil || *podSpec.AutomountServiceAccountToken {

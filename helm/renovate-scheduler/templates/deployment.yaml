@@ -18,8 +18,8 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
-        app.kubernetes.io/name: {{ include "renovate-scheduler.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- $podLabels := mergeOverwrite (deepCopy .Values.podLabels) (dict "app.kubernetes.io/name" (include "renovate-scheduler.name" .) "app.kubernetes.io/instance" .Release.Name) }}
+        {{- toYaml $podLabels | nindent 8 }}
     spec:
       securityContext:
         fsGroup: 65532

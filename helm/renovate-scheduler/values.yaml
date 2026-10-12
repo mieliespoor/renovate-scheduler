@@ -3,6 +3,9 @@ image:
   tag: dev
   pullPolicy: IfNotPresent
 
+# Additional labels for the scheduler Pod. The chart's identity labels are retained.
+podLabels: {}
+
 # Resource requests and limits for the scheduler container.
 # Set requests and limits independently to satisfy cluster policies (for example,
 # use equal memory values when the request-to-limit ratio must be 1).
@@ -63,6 +66,8 @@ scheduler:
       workload:
         imagePullPolicy: ""
         imagePullSecrets: []
+        # Additional labels for Renovate Job Pods. Scheduler identity labels are retained.
+        podLabels: {}
         securityContext: {}
         podSecurityContext: {}
         nodeSelector: {}

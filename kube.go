@@ -232,14 +232,17 @@ func buildJob(cfg *Config, repo string, envVars []corev1.EnvVar) (*batchv1.Job, 
 	if err != nil {
 		return nil, fmt.Errorf("building resources: %w", err)
 	}
+	labels := make(map[string]string, len(cfg.Renovate.Workload.PodLabels)+2)
+	for key, value := range cfg.Renovate.Workload.PodLabels {
+		labels[key] = value
+	}
+	labels["app.kubernetes.io/name"] = "renovate"
+	labels["app.kubernetes.io/managed-by"] = "renovate-scheduler"
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName(repo),
 			Namespace: cfg.Kubernetes.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":       "renovate",
-				"app.kubernetes.io/managed-by": "renovate-scheduler",
-			},
+			Labels:    labels,
 			Annotations: map[string]string{
 				"renovate-scheduler/repository": repo,
 			},
@@ -247,6 +250,7 @@ func buildJob(cfg *Config, repo string, envVars []corev1.EnvVar) (*batchv1.Job, 
 		Spec: batchv1.JobSpec{
 			BackoffLimit: new(int32(0)),
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: labels},
 				Spec: corev1.PodSpec{
 					RestartPolicy:                corev1.RestartPolicyNever,
 					ServiceAccountName:           cfg.Kubernetes.ServiceAccountName,

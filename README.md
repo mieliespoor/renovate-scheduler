@@ -433,7 +433,7 @@ applies to the scheduler pod).
 ### Renovate Job workload settings
 
 The chart's `scheduler.config.renovate.workload` value configures Kubernetes fields on the
-Renovate Job (not Renovate application settings). It supports `imagePullPolicy`,
+Renovate Job (not Renovate application settings). It supports `imagePullPolicy`, `podLabels`,
 `imagePullSecrets`, container `securityContext`, pod `podSecurityContext`, `nodeSelector`,
 `tolerations`, `affinity`, and `priorityClassName`. For example:
 
@@ -443,6 +443,9 @@ scheduler:
     renovate:
       workload:
         imagePullPolicy: IfNotPresent
+        podLabels:
+          team: platform
+          workload: renovate
         imagePullSecrets:
           - name: renovate-registry
         securityContext:
@@ -463,9 +466,24 @@ scheduler:
 ```
 
 These use the Kubernetes API's standard field shapes. Leave fields empty or omit them to use
-Kubernetes defaults. When supplying an existing scheduler ConfigMap instead of letting Helm
-generate it, set `renovate.workload_json` in `config.toml` to a JSON-encoded string containing
-the same camelCase fields.
+Kubernetes defaults. The scheduler preserves `app.kubernetes.io/name=renovate` and
+`app.kubernetes.io/managed-by=renovate-scheduler` when `podLabels` contains those keys.
+When supplying an existing scheduler ConfigMap instead of letting Helm generate it, set
+`renovate.workload_json` in `config.toml` to a JSON-encoded string containing the same camelCase
+fields.
+
+### Scheduler Pod labels
+
+Set top-level `podLabels` to add labels to the scheduler's own Pod:
+
+```yaml
+podLabels:
+  team: platform
+  workload: scheduler
+```
+
+The chart retains the scheduler Pod selector labels, `app.kubernetes.io/name` and
+`app.kubernetes.io/instance`, when those keys are supplied.
 
 ### Structured Logging
 

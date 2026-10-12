@@ -112,7 +112,7 @@ secret_name = "renovate-secret"
 func TestLoadConfigDecodesWorkloadJSON(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config.toml")
-	workloadJSON := `{"imagePullPolicy":"Always","imagePullSecrets":[{"name":"registry-creds"}],"nodeSelector":{"workload":"renovate"},"tolerations":[{"key":"batch","operator":"Equal","value":"true","effect":"NoSchedule"}],"priorityClassName":"batch-low","securityContext":{"allowPrivilegeEscalation":false},"podSecurityContext":{"runAsNonRoot":true},"affinity":{"nodeAffinity":{}}}`
+	workloadJSON := `{"imagePullPolicy":"Always","imagePullSecrets":[{"name":"registry-creds"}],"podLabels":{"team":"platform"},"nodeSelector":{"workload":"renovate"},"tolerations":[{"key":"batch","operator":"Equal","value":"true","effect":"NoSchedule"}],"priorityClassName":"batch-low","securityContext":{"allowPrivilegeEscalation":false},"podSecurityContext":{"runAsNonRoot":true},"affinity":{"nodeAffinity":{}}}`
 	content := "[renovate]\nimage = \"renovate/renovate:latest\"\nworkload_json = " + strconv.Quote(workloadJSON) + "\n\n[kubernetes]\nsecret_name = \"renovate-secret\"\n"
 	if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
@@ -127,6 +127,9 @@ func TestLoadConfigDecodesWorkloadJSON(t *testing.T) {
 	}
 	if len(cfg.Renovate.Workload.ImagePullSecrets) != 1 || cfg.Renovate.Workload.ImagePullSecrets[0].Name != "registry-creds" {
 		t.Fatalf("unexpected ImagePullSecrets: %#v", cfg.Renovate.Workload.ImagePullSecrets)
+	}
+	if cfg.Renovate.Workload.PodLabels["team"] != "platform" {
+		t.Fatalf("unexpected PodLabels: %#v", cfg.Renovate.Workload.PodLabels)
 	}
 	if cfg.Renovate.Workload.NodeSelector["workload"] != "renovate" || len(cfg.Renovate.Workload.Tolerations) != 1 {
 		t.Fatalf("unexpected node placement config: %#v", cfg.Renovate.Workload)
